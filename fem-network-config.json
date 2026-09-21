@@ -1,0 +1,16 @@
+{
+  "genesis": {
+    "config": {
+      "chainId": 23124,
+      "qbft": {
+        "blockperiodseconds": 2
+      }
+    }
+  },
+  "blockchain": {
+    "nodes": {
+      "generate": true,
+      "count": 4
+    }
+  }
+}

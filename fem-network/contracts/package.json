@@ -1,0 +1,13 @@
+{
+  "name": "fem-reward-contract-tools",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build-contract.js",
+    "generate-allowlist": "node scripts/generate-allowlist.js",
+    "test": "node scripts/test.js"
+  },
+  "dependencies": {
+    "ethers": "^6.15.0",
+    "solc": "^0.8.30"
+  }
+}

@@ -1,0 +1,9 @@
+# Validator private keys must never be committed.
+keys/**/key.priv
+
+# Local build and generated files.
+contracts/node_modules/
+contracts/artifacts/
+contracts/allowlist.json
+genesis-final.json
+genesis-hash.json

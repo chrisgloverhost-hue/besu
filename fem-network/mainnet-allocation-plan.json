@@ -1,0 +1,86 @@
+{
+  "network": "fem",
+  "chainId": 23124,
+  "consensus": "QBFT",
+  "blockPeriodSeconds": 2,
+  "genesisSettings": {
+    "timestamp": "SET_ONCE_AT_FINAL_MAINNET_LAUNCH",
+    "gasLimit": "0x1c9c380",
+    "gasLimitDecimal": 30000000,
+    "feePolicy": "EIP-1559_NONZERO_FEES",
+    "londonBlock": 0,
+    "baseFeePerGas": "0x3b9aca00",
+    "baseFeePerGasWei": "1000000000",
+    "blockReward": "0",
+    "forkSchedule": "LATEST_STABLE_FORK_SUPPORTED_BY_THE_DEPLOYED_BESU_RELEASE"
+  },
+  "totalSupplyFEM": "1000000000",
+  "decimals": 18,
+  "allocations": {
+    "treasury": {
+      "percentage": 2,
+      "amountFEM": "20000000",
+      "address": "TREASURY_MULTISIG_ADDRESS_PLACEHOLDER"
+    },
+    "earlyUserRewards": {
+      "percentage": 2,
+      "amountFEM": "20000000",
+      "address": "REWARD_CONTRACT_ADDRESS_PLACEHOLDER",
+      "contractSource": "contracts/FEMRewardDistributor.sol",
+      "rewardPerUserFEM": "40",
+      "maximumUsers": 500000,
+      "distribution": "Merkle allowlist claim contract"
+    },
+    "femSystem": {
+      "percentage": 96,
+      "amountFEM": "960000000",
+      "address": "FEM_SYSTEM_MULTISIG_ADDRESS_PLACEHOLDER"
+    }
+  },
+  "deploymentOrder": [
+    "Create and verify treasury and system multisigs",
+    "Start FEM with the finalized genesis",
+    "Deploy the early-user reward contract",
+    "Transfer 20000000 FEM to the reward contract",
+    "Publish the Merkle allowlist and contract source"
+  ],
+  "completed": [
+    "Generated four Besu QBFT validator keypairs",
+    "Generated validator extraData with Besu",
+    "Secured validator private keys with owner-only permissions",
+    "Created the FEM reward contract source",
+    "Compiled and tested the reward contract tooling",
+    "Recorded the 2 percent treasury, 2 percent rewards, and 96 percent system allocation",
+    "Reviewed npm audit and recorded two high transitive tmp advisories",
+    "Created four Besu node configuration templates with real validator key paths",
+    "Created a guarded genesis finalizer that rejects placeholders and duplicate addresses",
+    "Validated validators, QBFT extraData, key permissions, and private-key exposure",
+    "Created deployment, backup, contract, and agent handoff documentation",
+    "Created wei balance, supply, genesis hash, and Merkle verification scripts"
+  ],
+  "remaining": [
+    "Provide the treasury multisig address",
+    "Provide the FEM system multisig address",
+    "Create addresses.txt with real early-user addresses",
+    "Run npm run generate-allowlist -- addresses.txt allowlist.json",
+    "Choose the exact released Besu version for deployment",
+    "Resolve or explicitly accept the two high transitive tmp advisories before mainnet",
+    "Choose the final stable fork schedule for that Besu release",
+    "Set the final genesis timestamp at launch preparation",
+    "Replace node template hostnames, ports, and data paths with real deployment values",
+    "Finalize genesis allocations and required fields",
+    "Compute and record the final genesis hash",
+    "Deploy and verify the reward contract on the finalized chain",
+    "Fund the reward contract with 20000000 FEM",
+    "Run a four-validator rehearsal and failure-recovery test",
+    "Back up validator keys and obtain independent contract and mainnet review",
+    "Only then launch FEM mainnet"
+  ],
+  "handoffRules": [
+    "Do not invent addresses, timestamps, fork schedules, or node endpoints",
+    "Do not modify finalized genesis after any node starts",
+    "Never expose files named key.priv",
+    "The current genesis.json is not deployable until remaining items are complete"
+  ],
+  "status": "DRAFT_NOT_USABLE_UNTIL_PLACEHOLDERS_ARE_REPLACED"
+}

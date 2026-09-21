@@ -1,0 +1,9 @@
+data-path="NODE_1_DATA_PATH_PLACEHOLDER"
+genesis-file="/workspaces/besu/fem-network/genesis-final.json"
+node-private-key-file="/workspaces/besu/fem-network/keys/0x0c77761c81597ea3b312caf42984e829658d67a9/key.priv"
+p2p-host="NODE_1_HOSTNAME_OR_IP_PLACEHOLDER"
+p2p-port=NODE_1_P2P_PORT_PLACEHOLDER
+rpc-http-enabled=true
+rpc-http-host="127.0.0.1"
+rpc-http-port=NODE_1_RPC_PORT_PLACEHOLDER
+rpc-http-api=["ETH","NET","WEB3"]
