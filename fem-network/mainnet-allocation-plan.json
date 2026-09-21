@@ -29,7 +29,10 @@
       "contractSource": "contracts/FEMRewardDistributor.sol",
       "rewardPerUserFEM": "40",
       "maximumUsers": 500000,
-      "distribution": "Merkle allowlist claim contract"
+      "distribution": "User-initiated claim after wallet registration",
+      "walletCreationNote": "Wallet creation is offline; the chain cannot detect it automatically.",
+      "eligibilityRule": "ELIGIBILITY_RULE_REQUIRED",
+      "claimFlow": "User connects wallet, completes the approved eligibility check, and claims 40 FEM"
     },
     "femSystem": {
       "percentage": 96,
@@ -62,7 +65,8 @@
     "Provide the treasury multisig address",
     "Provide the FEM system multisig address",
     "Create addresses.txt with real early-user addresses",
-    "Run npm run generate-allowlist -- addresses.txt allowlist.json",
+    "Choose the anti-Sybil eligibility rule for self-serve wallet registration",
+    "Replace the allowlist model if self-serve claims are approved",
     "Choose the exact released Besu version for deployment",
     "Resolve or explicitly accept the two high transitive tmp advisories before mainnet",
     "Choose the final stable fork schedule for that Besu release",
@@ -82,5 +86,34 @@
     "Never expose files named key.priv",
     "The current genesis.json is not deployable until remaining items are complete"
   ],
+  "currentAgentStatus": {
+    "scope": "Besu chain infrastructure only",
+    "finalGenesisCreated": false,
+    "nodesInitialized": false,
+    "nodesStarted": false,
+    "mainnetFundsDeposited": false,
+    "sourceRevision": "cc876cb364-dirty",
+    "isTaggedBesuRelease": false,
+    "ownerInputsRequired": [
+      "treasuryMultisigAddress",
+      "femSystemMultisigAddress",
+      "finalUnixTimestamp",
+      "releasedBesuVersion",
+      "forkSchedule",
+      "validatorHostnamesOrIps",
+      "p2pPorts",
+      "rpcPolicy",
+      "bootnodeEnodes",
+      "rewardEligibilityDesign"
+    ],
+    "appOwnedResponsibilities": [
+      "walletCreation",
+      "userRegistration",
+      "rewardEligibility",
+      "walletBranding",
+      "scan",
+      "dex"
+    ]
+  },
   "status": "DRAFT_NOT_USABLE_UNTIL_PLACEHOLDERS_ARE_REPLACED"
 }
