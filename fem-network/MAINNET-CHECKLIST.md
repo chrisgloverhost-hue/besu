@@ -11,26 +11,33 @@
 
 ## Completed
 
-- Besu generated four QBFT validator keypairs.
+- Besu generated three QBFT validator keypairs.
 - Validator private keys are owner-only (`600`); validator directories are owner-only (`700`).
 - FEM chain ID is `23124`.
 - QBFT block period is 2 seconds.
-- Allocation plan totals 1,000,000,000 FEM.
-- Reward contract tooling compiles and its Merkle hashing checks pass.
+- Allocation plan totals 25,000,000,000 FEM across ten allocation buckets.
+- All ten allocation addresses are recorded in the plan; genesis will credit each address directly.
+- Initial QBFT set has three validators and requires two for quorum; it does not tolerate one Byzantine validator.
 
 ## Before Final Genesis
 
-- Provide real treasury and FEM system multisig addresses.
-- Decide whether rewards use the current Merkle allowlist or an app-authorized claim design. Wallet creation itself is not visible to Besu.
+- Confirm every allocation address in `mainnet-allocation-plan.json` is controlled by the intended owner.
 - Choose the exact released Besu version and its stable fork schedule.
+- Activate London at block 0 with `zeroBaseFee=true` and genesis `baseFeePerGas=0`; this avoids burning fees while supporting legacy and EIP-1559 transactions.
+- Keep the 1 Gwei minimum transaction and tx-pool gas prices identical across all validators.
 - Set the final Unix timestamp once.
-- Provide real node hostnames/IP addresses and ports.
+- Provide private IPs and P2P ports for all three validators, plus each node's two static peer enodes.
+- Bind P2P to the private interface (not `0.0.0.0`) and advertise the matching private IP.
+- Use SNAP sync with `sync-min-peers=1` for the three-validator network; full sync defaults to waiting for five peers.
+- Configure `permissions_config.toml` on each node to allow only the other two validator enodes.
+- Restrict inbound P2P TCP at the host/cloud firewall to the other two validators' private IPs; do not expose RPC ports.
+- Keep HTTP RPC bound to `127.0.0.1`; use an SSH tunnel for administration if needed.
 - Run `node scripts/validate-network.js` and `node scripts/verify-supply.js`.
 - Resolve or explicitly document the npm `tmp` advisories before deployment.
 - Prepare `final-input.json` and run the guarded finalizer.
 - Review the generated file manually and compute its genesis hash from a running Besu node.
 
-The reward contract address must not be placed in genesis before deployment unless a deterministic deployment address has been deliberately established. The normal order is to start the chain, deploy the contract, then fund it with `20,000,000 FEM`.
+Each allocation amount is credited directly to its listed address in genesis. Allocation owners manage any later distribution; no reward contract or allowlist is required for genesis allocation.
 
 ## Deployment Order
 
@@ -38,27 +45,26 @@ The reward contract address must not be placed in genesis before deployment unle
 2. Distribute validators across independent hosts/operators.
 3. Initialize every node with the exact same finalized genesis and verify the hash.
 4. Start validators and verify QBFT finality and non-zero transaction fees.
-5. Deploy and verify `FEMRewardDistributor.sol`.
-6. Transfer exactly 20,000,000 FEM to the reward contract.
-7. Publish the Merkle root, allowlist, contract source, and genesis hash.
+5. Verify each allocation address has the expected genesis balance.
+6. Publish the finalized genesis hash and allocation plan.
 
 ## Required Owner Inputs
 
 Provide all of these before finalization:
 
-- Treasury multisig address
-- FEM system multisig address
 - Final Unix timestamp
 - Exact released Besu version
 - Fork schedule for that release
 - Validator hostnames or IP addresses
 - P2P ports and RPC policy
-- Bootnode/enode URLs
-- Final reward eligibility design
+- Static enode URLs for each node's two validator peers
+- Firewall rules limiting P2P ingress to the other validators
 
 ## Security Rules
 
 - Never commit, upload, print, or share any `key.priv` file.
 - Never modify finalized genesis after any node starts.
 - Never use placeholder addresses or endpoints for mainnet.
-- Contract and multisig operations require independent review before real value is deposited.
+- Verify allocation address ownership and genesis balances before launch.
+- Keep node permissioning and firewall ingress restricted to the three authorized validators; never expose RPC publicly.
+- Before adding validators later, rehearse and coordinate a QBFT block-header validator-set update with all operators; do not rewrite genesis on a live network.

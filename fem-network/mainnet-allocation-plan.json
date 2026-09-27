@@ -7,66 +7,106 @@
     "timestamp": "SET_ONCE_AT_FINAL_MAINNET_LAUNCH",
     "gasLimit": "0x1c9c380",
     "gasLimitDecimal": 30000000,
-    "feePolicy": "EIP-1559_NONZERO_FEES",
+    "feePolicy": "ZERO_BASE_FEE_EIP1559_FULL_TRANSACTION_FEE_TO_QBFT_PROPOSER",
     "londonBlock": 0,
-    "baseFeePerGas": "0x3b9aca00",
-    "baseFeePerGasWei": "1000000000",
+    "baseFeePerGas": "0x0",
+    "zeroBaseFee": true,
+    "minimumGasPriceWei": "1000000000",
     "blockReward": "0",
     "forkSchedule": "LATEST_STABLE_FORK_SUPPORTED_BY_THE_DEPLOYED_BESU_RELEASE"
   },
-  "totalSupplyFEM": "1000000000",
+  "totalSupplyFEM": "25000000000",
   "decimals": 18,
+  "nativeCurrency": {
+    "name": "FEM",
+    "symbol": "FEM",
+    "decimals": 18
+  },
+  "validatorPolicy": {
+    "initialCount": 3,
+    "quorum": 2,
+    "byzantineFaultTolerance": 0,
+    "note": "Three validators can continue with one unavailable validator, but do not tolerate one Byzantine validator. Plan a controlled QBFT validator-set update before expanding the set."
+  },
   "allocations": {
     "treasury": {
-      "percentage": 2,
-      "amountFEM": "20000000",
-      "address": "TREASURY_MULTISIG_ADDRESS_PLACEHOLDER"
+      "percentage": 32,
+      "amountFEM": "8000000000",
+      "address": "0xbCAd8dad99E396E10813c14Cb262267b81F79f73"
     },
     "earlyUserRewards": {
-      "percentage": 2,
+      "percentage": 0.08,
       "amountFEM": "20000000",
-      "address": "REWARD_CONTRACT_ADDRESS_PLACEHOLDER",
-      "contractSource": "contracts/FEMRewardDistributor.sol",
+      "address": "0x1AB48F4deCE78987bD7B0ed904fd76b20DFa0754",
       "rewardPerUserFEM": "40",
       "maximumUsers": 500000,
-      "distribution": "User-initiated claim after wallet registration",
-      "walletCreationNote": "Wallet creation is offline; the chain cannot detect it automatically.",
-      "eligibilityRule": "ELIGIBILITY_RULE_REQUIRED",
-      "claimFlow": "User connects wallet, completes the approved eligibility check, and claims 40 FEM"
+      "distribution": "The full allocation is credited to this address at genesis; the allocation owner manages later distribution."
     },
-    "femSystem": {
-      "percentage": 96,
-      "amountFEM": "960000000",
-      "address": "FEM_SYSTEM_MULTISIG_ADDRESS_PLACEHOLDER"
+    "liquidityAndDex": {
+      "percentage": 9.30285714,
+      "amountFEM": "2325714285",
+      "address": "0x4E3212fE27098cdc5Ff08A10D685632B4A48F331"
+    },
+    "validatorRewards": {
+      "percentage": 9.30285714,
+      "amountFEM": "2325714285",
+      "address": "0xd8025F33CFcc9c88693E887c2cAE055aAbC4066C",
+      "distribution": "The full reserve is credited to this address at genesis. Transaction gas fees are paid to the QBFT block proposer, not automatically to this reserve; genesis block rewards remain zero."
+    },
+    "ecosystemAndDev": {
+      "percentage": 9.30285714,
+      "amountFEM": "2325714285",
+      "address": "0x8F687237AA373459F81fAB280A77a9696442618f"
+    },
+    "communityIncentives": {
+      "percentage": 9.30285714,
+      "amountFEM": "2325714285",
+      "address": "0x54ca04A808Fd384D338e7703f6523D1d70842e7A"
+    },
+    "teamAndFunders": {
+      "percentage": 9.30285714,
+      "amountFEM": "2325714285",
+      "address": "0x5cC2351a10B3a31c142145595815242b0b3d4125"
+    },
+    "partnerships": {
+      "percentage": 9.30285714,
+      "amountFEM": "2325714285",
+      "address": "0x70Ae07d359C3ED14d9601d9069253e737CD2a1d9"
+    },
+    "liquidityProviders": {
+      "percentage": 2.8,
+      "amountFEM": "700000000",
+      "address": "0x793Fa8D5CC5Dd6c7347E38c4644947ced1BFA5B6"
+    },
+    "futureDevReserve": {
+      "percentage": 9.30285716,
+      "amountFEM": "2325714290",
+      "address": "0xe85603ffc1539799A2aa37db51E1388435549FC4"
     }
   },
   "deploymentOrder": [
-    "Create and verify treasury and system multisigs",
+    "Verify control and intended custody of every distinct allocation address",
+    "Finalize genesis with all ten allocation balances",
     "Start FEM with the finalized genesis",
-    "Deploy the early-user reward contract",
-    "Transfer 20000000 FEM to the reward contract",
-    "Publish the Merkle allowlist and contract source"
+    "Verify the genesis balance of each allocation address"
   ],
   "completed": [
-    "Generated four Besu QBFT validator keypairs",
+    "Generated three Besu QBFT validator keypairs",
     "Generated validator extraData with Besu",
     "Secured validator private keys with owner-only permissions",
     "Created the FEM reward contract source",
     "Compiled and tested the reward contract tooling",
-    "Recorded the 2 percent treasury, 2 percent rewards, and 96 percent system allocation",
+    "Recorded the 25 billion FEM supply and ten allocation buckets",
+    "Recorded ten distinct allocation addresses supplied by the owner",
     "Reviewed npm audit and recorded two high transitive tmp advisories",
-    "Created four Besu node configuration templates with real validator key paths",
+    "Created three Besu node configuration templates with real validator key paths",
     "Created a guarded genesis finalizer that rejects placeholders and duplicate addresses",
     "Validated validators, QBFT extraData, key permissions, and private-key exposure",
     "Created deployment, backup, contract, and agent handoff documentation",
     "Created wei balance, supply, genesis hash, and Merkle verification scripts"
   ],
   "remaining": [
-    "Provide the treasury multisig address",
-    "Provide the FEM system multisig address",
-    "Create addresses.txt with real early-user addresses",
-    "Choose the anti-Sybil eligibility rule for self-serve wallet registration",
-    "Replace the allowlist model if self-serve claims are approved",
+    "Verify that every supplied allocation address is controlled by its intended owner",
     "Choose the exact released Besu version for deployment",
     "Resolve or explicitly accept the two high transitive tmp advisories before mainnet",
     "Choose the final stable fork schedule for that Besu release",
@@ -74,9 +114,7 @@
     "Replace node template hostnames, ports, and data paths with real deployment values",
     "Finalize genesis allocations and required fields",
     "Compute and record the final genesis hash",
-    "Deploy and verify the reward contract on the finalized chain",
-    "Fund the reward contract with 20000000 FEM",
-    "Run a four-validator rehearsal and failure-recovery test",
+    "Run a three-validator rehearsal and failure-recovery test",
     "Back up validator keys and obtain independent contract and mainnet review",
     "Only then launch FEM mainnet"
   ],
@@ -95,16 +133,14 @@
     "sourceRevision": "cc876cb364-dirty",
     "isTaggedBesuRelease": false,
     "ownerInputsRequired": [
-      "treasuryMultisigAddress",
-      "femSystemMultisigAddress",
+      "allocationAddressOwnershipConfirmation",
       "finalUnixTimestamp",
       "releasedBesuVersion",
       "forkSchedule",
       "validatorHostnamesOrIps",
       "p2pPorts",
       "rpcPolicy",
-      "bootnodeEnodes",
-      "rewardEligibilityDesign"
+      "bootnodeEnodes"
     ],
     "appOwnedResponsibilities": [
       "walletCreation",
@@ -115,5 +151,5 @@
       "dex"
     ]
   },
-  "status": "DRAFT_NOT_USABLE_UNTIL_PLACEHOLDERS_ARE_REPLACED"
+  "status": "DRAFT_NOT_USABLE_UNTIL_DEPLOYMENT_INPUTS_ARE_FINALIZED"
 }
