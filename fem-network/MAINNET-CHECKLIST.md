@@ -24,7 +24,7 @@
 - Confirm every allocation address in `mainnet-allocation-plan.json` is controlled by the intended owner.
 - Choose the exact released Besu version and its stable fork schedule.
 - Activate London at block 0 with `zeroBaseFee=true` and genesis `baseFeePerGas=0`; this avoids burning fees while supporting legacy and EIP-1559 transactions.
-- Keep the 1 Gwei minimum transaction and tx-pool gas prices identical across all validators.
+- Keep the 1 Gwei minimum gas price, tx-pool gas price, and minimum priority fee identical across all validators. Contract deployments/calls use the same per-gas rate; their total fees depend on gas consumed.
 - Set the final Unix timestamp once.
 - Provide private IPs and P2P ports for all three validators, plus each node's two static peer enodes.
 - Bind P2P to the private interface (not `0.0.0.0`) and advertise the matching private IP.
@@ -33,7 +33,7 @@
 - Restrict inbound P2P TCP at the host/cloud firewall to the other two validators' private IPs; do not expose RPC ports.
 - Keep HTTP RPC bound to `127.0.0.1`; use an SSH tunnel for administration if needed.
 - Run `node scripts/validate-network.js` and `node scripts/verify-supply.js`.
-- Resolve or explicitly document the npm `tmp` advisories before deployment.
+- Run `npm audit --prefix contracts` before deployment; the current lockfile audit is clean.
 - Prepare `final-input.json` and run the guarded finalizer.
 - Review the generated file manually and compute its genesis hash from a running Besu node.
 

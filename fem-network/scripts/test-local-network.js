@@ -4,7 +4,8 @@ const net = require('net');
 const os = require('os');
 const path = require('path');
 const { spawn, spawnSync } = require('child_process');
-const { Wallet, computeAddress, parseEther } = require('../contracts/node_modules/ethers');
+const { ContractFactory, Wallet, computeAddress, parseEther } = require('../contracts/node_modules/ethers');
+const solc = require('../contracts/node_modules/solc');
 
 const femRoot = path.resolve(__dirname, '..');
 const repositoryRoot = path.resolve(femRoot, '..');
@@ -78,6 +79,21 @@ async function getUniquePorts(count) {
   return [...ports];
 }
 
+function compileLocalCryptoFixtures() {
+  const source = fs.readFileSync(path.join(femRoot, 'contracts', 'test', 'LocalCryptoFlowFixtures.sol'), 'utf8');
+  const output = JSON.parse(solc.compile(JSON.stringify({
+    language: 'Solidity',
+    sources: { 'LocalCryptoFlowFixtures.sol': { content: source } },
+    settings: {
+      evmVersion: 'shanghai',
+      outputSelection: { '*': { '*': ['abi', 'evm.bytecode.object'] } }
+    }
+  })));
+  const errors = (output.errors || []).filter((error) => error.severity === 'error');
+  if (errors.length > 0) throw new Error(errors.map((error) => error.formattedMessage).join('\n'));
+  return output.contracts['LocalCryptoFlowFixtures.sol'];
+}
+
 function stopNodes() {
   for (const child of children) {
     if (child.exitCode === null && child.pid) {
@@ -116,6 +132,14 @@ async function main() {
   if (validatorDirectories.length !== plan.validatorPolicy.initialCount) {
     throw new Error(`Expected ${plan.validatorPolicy.initialCount} validators, found ${validatorDirectories.length}`);
   }
+  const contractBuild = spawnSync(process.execPath, [
+    path.join(femRoot, 'contracts', 'scripts', 'build-contract.js')
+  ], { encoding: 'utf8' });
+  if (contractBuild.status !== 0) throw new Error(contractBuild.stderr || contractBuild.stdout);
+  const contractArtifact = JSON.parse(fs.readFileSync(
+    path.join(femRoot, 'contracts', 'artifacts', 'FEMRewardDistributor.json'), 'utf8'
+  ));
+  const localFixtures = compileLocalCryptoFixtures();
 
   const ports = await getUniquePorts(validatorDirectories.length * 2);
   const validators = validatorDirectories.map((address, index) => ({
@@ -135,7 +159,8 @@ async function main() {
       homesteadBlock: 0,
       istanbulBlock: 0,
       berlinBlock: 0,
-      londonBlock: 0
+      londonBlock: 0,
+      shanghaiTime: 0
     }
   }));
   const finalizer = spawnSync(process.execPath, [
@@ -177,6 +202,7 @@ async function main() {
       '--sync-mode=SNAP',
       '--sync-min-peers=1',
       `--min-gas-price=${plan.genesisSettings.minimumGasPriceWei}`,
+      `--min-priority-fee=${plan.genesisSettings.minimumPriorityFeeWei}`,
       `--tx-pool-min-gas-price=${plan.genesisSettings.minimumGasPriceWei}`,
       '--rpc-http-enabled=true',
       '--rpc-http-host=127.0.0.1',
@@ -209,38 +235,190 @@ async function main() {
   }
   console.log('All ten FEM genesis allocation balances match the allocation plan.');
 
-  const signedTransaction = await temporaryWallet.signTransaction({
-    type: 2,
-    chainId: plan.chainId,
-    nonce: 0,
-    maxPriorityFeePerGas: 1000000000n,
-    maxFeePerGas: 2000000000n,
-    gasLimit: 21000,
+  const minimumPriorityFee = BigInt(plan.genesisSettings.minimumPriorityFeeWei);
+  const rpcPort = validators[0].rpcPort;
+  let transactionNonce = 0;
+
+  async function submitAndCheckFee({ to, data, value = 0n, gasLimit, label, expectedStatus = 1 }) {
+    const signedTransaction = await temporaryWallet.signTransaction({
+      type: 2,
+      chainId: plan.chainId,
+      nonce: transactionNonce++,
+      maxPriorityFeePerGas: minimumPriorityFee,
+      maxFeePerGas: minimumPriorityFee * 2n,
+      gasLimit,
+      to,
+      data,
+      value
+    });
+    const transactionHash = await rpc(rpcPort, 'eth_sendRawTransaction', [signedTransaction]);
+    const receipt = await waitFor(async () => {
+      const result = await rpc(rpcPort, 'eth_getTransactionReceipt', [transactionHash]);
+      return result || false;
+    }, `${label} receipt`);
+    if (BigInt(receipt.status) !== BigInt(expectedStatus)) {
+      throw new Error(`${label}: expected receipt status ${expectedStatus}, got ${receipt.status}`);
+    }
+    const block = await rpc(rpcPort, 'eth_getBlockByHash', [receipt.blockHash, false]);
+    if (BigInt(block.baseFeePerGas) !== 0n) throw new Error(`${label}: expected zero base fee, got ${block.baseFeePerGas}`);
+    const proposer = block.miner.toLowerCase();
+    const proposerValidator = validators.find((validator) => computeAddress(
+      fs.readFileSync(validator.privateKeyPath, 'utf8').trim()
+    ).toLowerCase() === proposer);
+    if (!proposerValidator) throw new Error(`${label}: proposer is not one of the FEM validators: ${proposer}`);
+    const gasUsed = BigInt(receipt.gasUsed);
+    const effectiveGasPrice = BigInt(receipt.effectiveGasPrice);
+    if (effectiveGasPrice !== minimumPriorityFee) {
+      throw new Error(`${label}: expected ${minimumPriorityFee} wei effective gas price, got ${effectiveGasPrice}`);
+    }
+    const blockNumber = BigInt(receipt.blockNumber);
+    const beforeBalance = await rpc(rpcPort, 'eth_getBalance', [proposer, `0x${(blockNumber - 1n).toString(16)}`]);
+    const afterBalance = await rpc(rpcPort, 'eth_getBalance', [proposer, receipt.blockNumber]);
+    const expectedCredit = gasUsed * effectiveGasPrice;
+    if (BigInt(afterBalance) - BigInt(beforeBalance) !== expectedCredit) {
+      throw new Error(`${label}: proposer fee credit mismatch for ${gasUsed} gas`);
+    }
+    console.log(`${label}: ${gasUsed} gas × ${effectiveGasPrice} wei; proposer received ${expectedCredit} wei.`);
+    return receipt;
+  }
+
+  await submitAndCheckFee({
     to: temporaryWallet.address,
-    value: 0n
+    gasLimit: 21000n,
+    label: 'Simple transfer'
   });
-  const transactionHash = await rpc(validators[0].rpcPort, 'eth_sendRawTransaction', [signedTransaction]);
-  const receipt = await waitFor(async () => {
-    const result = await rpc(validators[0].rpcPort, 'eth_getTransactionReceipt', [transactionHash]);
-    return result || false;
-  }, 'EIP-1559 transaction receipt');
-  const block = await rpc(validators[0].rpcPort, 'eth_getBlockByHash', [receipt.blockHash, false]);
-  if (BigInt(block.baseFeePerGas) !== 0n) throw new Error(`Expected zero base fee, got ${block.baseFeePerGas}`);
-  const proposer = block.miner.toLowerCase();
-  const proposerValidator = validators.find((validator) => computeAddress(
-    fs.readFileSync(validator.privateKeyPath, 'utf8').trim()
-  ).toLowerCase() === proposer);
-  if (!proposerValidator) throw new Error(`Block proposer is not one of the FEM validators: ${proposer}`);
-  const gasUsed = BigInt(receipt.gasUsed);
-  const effectiveGasPrice = BigInt(receipt.effectiveGasPrice);
-  if (effectiveGasPrice !== 1000000000n) {
-    throw new Error(`Expected 1 Gwei effective gas price, got ${effectiveGasPrice}`);
+
+  const contractFactory = new ContractFactory(contractArtifact.abi, contractArtifact.bytecode, temporaryWallet);
+  const deployment = await contractFactory.getDeployTransaction(
+    temporaryWallet.address,
+    `0x${'00'.repeat(32)}`
+  );
+  const deploymentReceipt = await submitAndCheckFee({
+    gasLimit: 5000000n,
+    data: deployment.data,
+    label: 'FEM reward contract deployment'
+  });
+  if (!deploymentReceipt.contractAddress) throw new Error('Reward contract deployment did not return a contract address');
+  const deployedCode = await rpc(rpcPort, 'eth_getCode', [deploymentReceipt.contractAddress, 'latest']);
+  if (deployedCode === '0x') throw new Error('Reward contract deployment produced no runtime bytecode');
+
+  const contractCallData = contractFactory.interface.encodeFunctionData('setPaused', [true]);
+  await submitAndCheckFee({
+    to: deploymentReceipt.contractAddress,
+    gasLimit: 100000n,
+    data: contractCallData,
+    label: 'FEM reward contract call'
+  });
+
+  async function deployFixture(name, args = []) {
+    const artifact = localFixtures[name];
+    const factory = new ContractFactory(artifact.abi, `0x${artifact.evm.bytecode.object}`, temporaryWallet);
+    const deployment = await factory.getDeployTransaction(...args);
+    const receipt = await submitAndCheckFee({
+      data: deployment.data,
+      gasLimit: 5000000n,
+      label: `${name} deployment`
+    });
+    if (!receipt.contractAddress) throw new Error(`${name} deployment did not return an address`);
+    const code = await rpc(rpcPort, 'eth_getCode', [receipt.contractAddress, 'latest']);
+    if (code === '0x') throw new Error(`${name} deployment produced no runtime code`);
+    return { address: receipt.contractAddress, factory };
   }
-  const proposerBalance = await rpc(validators[0].rpcPort, 'eth_getBalance', [proposer, 'latest']);
-  if (BigInt(proposerBalance) !== gasUsed * effectiveGasPrice) {
-    throw new Error(`Proposer fee credit mismatch: balance=${proposerBalance}, gasUsed=${gasUsed}`);
+
+  async function fixtureRead(contract, method, args = []) {
+    const data = contract.factory.interface.encodeFunctionData(method, args);
+    const result = await rpc(rpcPort, 'eth_call', [{ to: contract.address, data }, 'latest']);
+    return contract.factory.interface.decodeFunctionResult(method, result)[0];
   }
-  console.log(`EIP-1559 fee test passed: base fee 0; proposer ${proposer} credited ${gasUsed * effectiveGasPrice} wei.`);
+
+  async function fixtureWrite(contract, method, args, label, {
+    value = 0n,
+    gasLimit = 500000n,
+    expectedStatus = 1
+  } = {}) {
+    const data = contract.factory.interface.encodeFunctionData(method, args);
+    return submitAndCheckFee({ to: contract.address, data, value, gasLimit, label, expectedStatus });
+  }
+
+  const initialSubtokenSupply = parseEther('1000000');
+  const femDollar = await deployFixture('LocalTestToken', ['Test FEM Dollar', 'tFUSD', initialSubtokenSupply]);
+  const femGovernance = await deployFixture('LocalTestToken', ['Test FEM Governance', 'tFGOV', initialSubtokenSupply]);
+  const wrappedFem = await deployFixture('LocalTestWrappedFEM');
+  const swap = await deployFixture('LocalTestConstantProductSwap');
+
+  const testRecipient = Wallet.createRandom().address;
+  const subtokenTransfer = parseEther('25');
+  await fixtureWrite(femDollar, 'transfer', [testRecipient, subtokenTransfer], 'Sub-token transfer');
+  if (await fixtureRead(femDollar, 'balanceOf', [testRecipient]) !== subtokenTransfer) {
+    throw new Error('Sub-token transfer balance mismatch');
+  }
+  if (await fixtureRead(femDollar, 'symbol') !== 'tFUSD') throw new Error('Sub-token metadata mismatch');
+
+  const wrappedDeposit = parseEther('1');
+  await fixtureWrite(wrappedFem, 'deposit', [], 'wFEM wrap', { value: wrappedDeposit });
+  const receiveDeposit = parseEther('0.25');
+  await submitAndCheckFee({
+    to: wrappedFem.address,
+    value: receiveDeposit,
+    gasLimit: 100000n,
+    label: 'wFEM receive-function wrap'
+  });
+  const wrappedBalanceBeforeWithdrawal = wrappedDeposit + receiveDeposit;
+  if (await fixtureRead(wrappedFem, 'balanceOf', [temporaryWallet.address]) !== wrappedBalanceBeforeWithdrawal) {
+    throw new Error('wFEM wrapped balance mismatch after receive-function deposit');
+  }
+  const wrappedWithdrawal = parseEther('0.4');
+  await fixtureWrite(wrappedFem, 'withdraw', [wrappedWithdrawal], 'wFEM unwrap');
+  const wrappedBalanceAfterWithdrawal = wrappedBalanceBeforeWithdrawal - wrappedWithdrawal;
+  if (await fixtureRead(wrappedFem, 'balanceOf', [temporaryWallet.address]) !== wrappedBalanceAfterWithdrawal) {
+    throw new Error('wFEM unwrap balance mismatch');
+  }
+  if (await fixtureRead(wrappedFem, 'totalSupply') !== wrappedBalanceAfterWithdrawal) {
+    throw new Error('wFEM supply mismatch after unwrap');
+  }
+  if (BigInt(await rpc(rpcPort, 'eth_getBalance', [wrappedFem.address, 'latest'])) !== wrappedBalanceAfterWithdrawal) {
+    throw new Error('wFEM native backing does not match its outstanding supply');
+  }
+  await fixtureWrite(wrappedFem, 'withdraw', [wrappedBalanceAfterWithdrawal + 1n], 'Reject over-withdrawal', {
+    expectedStatus: 0
+  });
+  if (await fixtureRead(wrappedFem, 'balanceOf', [temporaryWallet.address]) !== wrappedBalanceAfterWithdrawal) {
+    throw new Error('Failed wFEM withdrawal changed the token balance');
+  }
+
+  const liquidity = parseEther('10000');
+  await fixtureWrite(femDollar, 'transfer', [swap.address, liquidity], 'Seed test swap token A');
+  await fixtureWrite(femGovernance, 'transfer', [swap.address, liquidity], 'Seed test swap token B');
+  const swapInput = parseEther('100');
+  const minimumSwapOutput = parseEther('98');
+  await fixtureWrite(femDollar, 'approve', [swap.address, swapInput], 'Approve test swap');
+  const tokenOutBefore = await fixtureRead(femGovernance, 'balanceOf', [temporaryWallet.address]);
+  const inputBalanceBeforeSwap = await fixtureRead(femDollar, 'balanceOf', [temporaryWallet.address]);
+  await fixtureWrite(swap, 'swapExactInput', [
+    femDollar.address,
+    femGovernance.address,
+    swapInput,
+    parseEther('99'),
+    temporaryWallet.address
+  ], 'Reject swap above available slippage output', { expectedStatus: 0 });
+  if (await fixtureRead(femDollar, 'balanceOf', [temporaryWallet.address]) !== inputBalanceBeforeSwap
+      || await fixtureRead(femDollar, 'allowance', [temporaryWallet.address, swap.address]) !== swapInput
+      || await fixtureRead(femGovernance, 'balanceOf', [temporaryWallet.address]) !== tokenOutBefore) {
+    throw new Error('Reverted slippage-protected swap changed balances or allowance');
+  }
+  await fixtureWrite(swap, 'swapExactInput', [
+    femDollar.address,
+    femGovernance.address,
+    swapInput,
+    minimumSwapOutput,
+    temporaryWallet.address
+  ], 'Test token swap');
+  const tokenOutAfter = await fixtureRead(femGovernance, 'balanceOf', [temporaryWallet.address]);
+  if (tokenOutAfter - tokenOutBefore < minimumSwapOutput) throw new Error('Swap output is below the minimum slippage amount');
+  if (await fixtureRead(femDollar, 'allowance', [temporaryWallet.address, swap.address]) !== 0n) {
+    throw new Error('Swap did not consume the approved token allowance');
+  }
+  console.log('Test ERC-20 transfer/approval, wFEM wrap/unwrap, and constant-product swap passed.');
   completed = true;
 }
 

@@ -11,6 +11,7 @@ max-peers=2
 sync-mode="SNAP"
 sync-min-peers=1
 min-gas-price=1000000000
+min-priority-fee=1000000000
 tx-pool-min-gas-price=1000000000
 rpc-http-enabled=true
 rpc-http-host="127.0.0.1"

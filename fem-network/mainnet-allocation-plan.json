@@ -12,6 +12,7 @@
     "baseFeePerGas": "0x0",
     "zeroBaseFee": true,
     "minimumGasPriceWei": "1000000000",
+    "minimumPriorityFeeWei": "1000000000",
     "blockReward": "0",
     "forkSchedule": "LATEST_STABLE_FORK_SUPPORTED_BY_THE_DEPLOYED_BESU_RELEASE"
   },
@@ -98,7 +99,7 @@
     "Compiled and tested the reward contract tooling",
     "Recorded the 25 billion FEM supply and ten allocation buckets",
     "Recorded ten distinct allocation addresses supplied by the owner",
-    "Reviewed npm audit and recorded two high transitive tmp advisories",
+    "Fixed transitive tmp advisories with npm override and verified npm audit clean",
     "Created three Besu node configuration templates with real validator key paths",
     "Created a guarded genesis finalizer that rejects placeholders and duplicate addresses",
     "Validated validators, QBFT extraData, key permissions, and private-key exposure",
@@ -108,7 +109,6 @@
   "remaining": [
     "Verify that every supplied allocation address is controlled by its intended owner",
     "Choose the exact released Besu version for deployment",
-    "Resolve or explicitly accept the two high transitive tmp advisories before mainnet",
     "Choose the final stable fork schedule for that Besu release",
     "Set the final genesis timestamp at launch preparation",
     "Replace node template hostnames, ports, and data paths with real deployment values",

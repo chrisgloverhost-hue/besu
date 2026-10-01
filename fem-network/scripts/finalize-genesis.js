@@ -13,6 +13,11 @@ if (plan.genesisSettings.londonBlock !== 0
     || plan.genesisSettings.baseFeePerGas !== '0x0') {
   throw new Error('FEM fee plan must keep London at block 0 with zeroBaseFee and a zero genesis base fee');
 }
+if (!/^\d+$/.test(plan.genesisSettings.minimumGasPriceWei)
+    || !/^\d+$/.test(plan.genesisSettings.minimumPriorityFeeWei)
+    || plan.genesisSettings.minimumGasPriceWei !== plan.genesisSettings.minimumPriorityFeeWei) {
+  throw new Error('FEM minimum gas price and priority fee must be matching decimal wei values');
+}
 if (genesis.config.chainId !== plan.chainId) throw new Error('Source genesis chain ID does not match the FEM plan');
 if (genesis.config.qbft?.blockperiodseconds !== plan.blockPeriodSeconds) {
   throw new Error('Source genesis QBFT settings do not match the FEM plan');

@@ -15,6 +15,8 @@ if (typeof genesis.extraData !== 'string' || !genesis.extraData.startsWith('0x')
 const extraData = genesis.extraData.toLowerCase();
 const minimumGasPrice = plan.genesisSettings.minimumGasPriceWei;
 if (!/^\d+$/.test(minimumGasPrice)) throw new Error('Plan minimumGasPriceWei must be a decimal integer');
+const minimumPriorityFee = plan.genesisSettings.minimumPriorityFeeWei;
+if (!/^\d+$/.test(minimumPriorityFee)) throw new Error('Plan minimumPriorityFeeWei must be a decimal integer');
 for (const address of validatorAddresses) {
   if (!extraData.includes(address.slice(2))) throw new Error(`Validator missing from extraData: ${address}`);
   const directory = path.join(keysRoot, address);
@@ -36,6 +38,7 @@ for (let index = 1; index <= validatorAddresses.length; index += 1) {
     'sync-mode="SNAP"',
     'sync-min-peers=1',
     `min-gas-price=${minimumGasPrice}`,
+    `min-priority-fee=${minimumPriorityFee}`,
     `tx-pool-min-gas-price=${minimumGasPrice}`,
     'rpc-http-host="127.0.0.1"'
   ];
