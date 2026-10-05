@@ -154,14 +154,7 @@ async function main() {
   const finalizerInputPath = path.join(temporaryRoot, 'final-input.json');
   const genesisPath = path.join(temporaryRoot, 'genesis.json');
   fs.writeFileSync(finalizerInputPath, JSON.stringify({
-    timestamp: Math.floor(Date.now() / 1000) - 30,
-    forkConfig: {
-      homesteadBlock: 0,
-      istanbulBlock: 0,
-      berlinBlock: 0,
-      londonBlock: 0,
-      shanghaiTime: 0
-    }
+    timestamp: Math.floor(Date.now() / 1000) - 30
   }));
   const finalizer = spawnSync(process.execPath, [
     path.join(femRoot, 'scripts', 'finalize-genesis.js'),

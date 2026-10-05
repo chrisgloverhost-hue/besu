@@ -14,7 +14,20 @@
     "minimumGasPriceWei": "1000000000",
     "minimumPriorityFeeWei": "1000000000",
     "blockReward": "0",
-    "forkSchedule": "LATEST_STABLE_FORK_SUPPORTED_BY_THE_DEPLOYED_BESU_RELEASE"
+    "forkSchedule": "homesteadBlock,istanbulBlock,berlinBlock,londonBlock at 0; shanghaiTime at 0",
+    "forkConfig": {
+      "homesteadBlock": 0,
+      "istanbulBlock": 0,
+      "berlinBlock": 0,
+      "londonBlock": 0,
+      "shanghaiTime": 0
+    }
+  },
+  "besuRelease": {
+    "version": "26.9.0",
+    "artifact": "besu-26.9.0.tar.gz",
+    "sha256": "172b29069837f13436a20bd7c8234aeca67917d8a378e81e2bd4a205c57540ea",
+    "e2eTested": true
   },
   "totalSupplyFEM": "25000000000",
   "decimals": 18,
@@ -92,7 +105,7 @@
     "Verify the genesis balance of each allocation address"
   ],
   "completed": [
-    "Generated three Besu QBFT validator keypairs",
+    "Generated three local QBFT test keypairs; production must use freshly generated secure validator keys",
     "Generated validator extraData with Besu",
     "Secured validator private keys with owner-only permissions",
     "Created the FEM reward contract source",
@@ -108,14 +121,12 @@
   ],
   "remaining": [
     "Verify that every supplied allocation address is controlled by its intended owner",
-    "Choose the exact released Besu version for deployment",
-    "Choose the final stable fork schedule for that Besu release",
     "Set the final genesis timestamp at launch preparation",
     "Replace node template hostnames, ports, and data paths with real deployment values",
     "Finalize genesis allocations and required fields",
     "Compute and record the final genesis hash",
-    "Run a three-validator rehearsal and failure-recovery test",
-    "Back up validator keys and obtain independent contract and mainnet review",
+    "Run a three-validator failure-recovery rehearsal on the production hosting and firewall setup",
+    "Generate and securely back up fresh production validator keys; obtain independent mainnet review",
     "Only then launch FEM mainnet"
   ],
   "handoffRules": [
@@ -130,17 +141,18 @@
     "nodesInitialized": false,
     "nodesStarted": false,
     "mainnetFundsDeposited": false,
-    "sourceRevision": "cc876cb364-dirty",
+    "sourceRevision": "LOCAL_SOURCE_CHECKOUT_NOT_USED_FOR_RELEASE_E2E",
     "isTaggedBesuRelease": false,
+    "validatedBesuRelease": "26.9.0",
     "ownerInputsRequired": [
       "allocationAddressOwnershipConfirmation",
       "finalUnixTimestamp",
-      "releasedBesuVersion",
-      "forkSchedule",
       "validatorHostnamesOrIps",
       "p2pPorts",
       "rpcPolicy",
-      "bootnodeEnodes"
+      "bootnodeEnodes",
+      "firewallRules",
+      "productionValidatorKeys"
     ],
     "appOwnedResponsibilities": [
       "walletCreation",

@@ -37,9 +37,6 @@ if (genesisValidatorAddresses.length !== validatorAddresses.length
 const placeholders = JSON.stringify(input).match(/[A-Z][A-Z0-9_]*PLACEHOLDER|SET_[A-Z0-9_]+/g);
 if (placeholders) throw new Error(`Unresolved placeholders: ${placeholders.join(', ')}`);
 if (!Number.isSafeInteger(input.timestamp) || input.timestamp <= 0) throw new Error('timestamp must be a positive Unix timestamp');
-if (!input.forkConfig || typeof input.forkConfig !== 'object' || Array.isArray(input.forkConfig)) {
-  throw new Error('forkConfig must be an object containing supported fork activation fields');
-}
 const supportedForkFields = new Set([
   'homesteadBlock', 'daoForkBlock', 'eip150Block', 'eip158Block', 'byzantiumBlock',
   'constantinopleBlock', 'constantinopleFixBlock', 'petersburgBlock', 'istanbulBlock',
@@ -47,9 +44,16 @@ const supportedForkFields = new Set([
   'mergeNetSplitBlock', 'shanghaiTime', 'cancunTime', 'pragueTime', 'osakaTime', 'bpo1Time',
   'bpo2Time', 'bpo3Time', 'bpo4Time', 'bpo5Time', 'amsterdamTime'
 ]);
+const plannedForkConfig = plan.genesisSettings.forkConfig;
+if (!plannedForkConfig || typeof plannedForkConfig !== 'object' || Array.isArray(plannedForkConfig)) {
+  throw new Error('The FEM plan must define its fork activation config');
+}
+if (input.forkConfig !== undefined && JSON.stringify(input.forkConfig) !== JSON.stringify(plannedForkConfig)) {
+  throw new Error('final-input forkConfig must exactly match the FEM plan');
+}
 const normalizedForkConfig = {};
 const seenForkFields = new Set();
-for (const [field, value] of Object.entries(input.forkConfig)) {
+for (const [field, value] of Object.entries(plannedForkConfig)) {
   const normalizedField = field.toLowerCase();
   if (!supportedForkFields.has(field)) throw new Error(`Unsupported fork config field: ${field}`);
   if (seenForkFields.has(normalizedField)) throw new Error(`Duplicate fork config field: ${field}`);

@@ -1,10 +1,10 @@
 # FEM Mainnet Handoff
 
-FEM is configured as a QBFT EVM chain with chain ID `23124`, three Besu-generated validators, and a 2-second block period.
+FEM is configured as a QBFT EVM chain with chain ID `23124`, three Besu-generated validators, and a 2-second block period. The checksum-verified upstream Besu `26.9.0` release and the EVM fork config are pinned in the allocation plan and passed the local three-validator E2E rehearsal.
 
 This is a handoff, not a launch. Another agent must not finalize genesis, initialize nodes, or start a validator until the owner supplies the values listed in [MAINNET-CHECKLIST.md](MAINNET-CHECKLIST.md). Besu is responsible for chain infrastructure; the FEM app is responsible for wallet registration and user eligibility.
 
-The working status and remaining inputs are in [mainnet-allocation-plan.json](mainnet-allocation-plan.json). All ten allocation addresses and balances are recorded there and will be credited directly in genesis. The current `genesis.json` is a validator-generation draft and is not deployable until the guarded finalizer receives a timestamp and exact fork configuration.
+The working status and remaining inputs are in [mainnet-allocation-plan.json](mainnet-allocation-plan.json). All ten allocation addresses and balances are recorded there and will be credited directly in genesis. The current `genesis.json` is a validator-generation draft and is not deployable until the guarded finalizer receives the final launch timestamp.
 
 Validator templates disable peer discovery, require node permissioning and static peers, cap peers at the other two validators, bind P2P to a private interface, use SNAP sync with a one-peer threshold, and bind HTTP RPC to loopback. Besu otherwise binds P2P to all interfaces and FULL sync waits for five peers by default. Before launch, allow only the other validators' private IPs through each host/cloud firewall's P2P TCP rule. Never expose RPC publicly.
 
